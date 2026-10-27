@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#512078">
+  <title>جرد ستائر أركان الطليعة</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-mark">أ</div>
+    <div><h1>ستائر أركان الطليعة</h1><p>جرد الأقمشة واللفات</p></div>
+    <span id="connectionBadge" class="badge muted">غير متصل</span>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-page="home">الرئيسية</button>
+    <button class="tab" data-page="items">الألوان والأصناف</button>
+    <button class="tab" data-page="rolls">جميع اللفات</button>
+    <button class="tab" data-page="count">جرد اللفات</button>
+    <button class="tab" data-page="reports">التقارير</button>
+  </nav>
+
+  <main>
+    <section id="page-home" class="page active">
+      <div class="welcome"><h2>ملخص المخزون</h2><p>تابع اللفات والأمتار وحالة الجرد من مكان واحد.</p></div>
+      <div class="stats">
+        <article class="stat"><span>إجمالي اللفات</span><strong id="statRolls">0</strong></article>
+        <article class="stat green"><span>اللفات المجردة</span><strong id="statCounted">0</strong></article>
+        <article class="stat blue"><span>إجمالي الأمتار</span><strong id="statMeters">0</strong></article>
+        <article class="stat gold"><span>الألوان المسجلة</span><strong id="statItems">0</strong></article>
+      </div>
+      <div class="quick-actions">
+        <button class="primary" data-open="addRoll">＋ إضافة لفة واردة</button>
+        <button class="secondary" data-open="addItem">＋ إضافة لون/صنف</button>
+        <button class="secondary" data-page="count">✓ بدء الجرد</button>
+      </div>
+      <div class="panel"><h3>آخر اللفات المضافة</h3><div id="recentRolls" class="list empty">لا توجد لفات بعد. أضف أول لفة للبدء.</div></div>
+    </section>
+
+    <section id="page-items" class="page">
+      <div class="section-head"><div><h2>الألوان والأصناف</h2><p>كل لون يسجل مرة واحدة، ثم تضيف اللفات عليه.</p></div><button class="primary" data-open="addItem">＋ إضافة صنف</button></div>
+      <input id="itemSearch" class="search" placeholder="ابحث برقم اللون أو اسم القماش...">
+      <div id="itemsList" class="list empty">لا توجد أصناف مسجلة.</div>
+    </section>
+
+    <section id="page-rolls" class="page">
+      <div class="section-head"><div><h2>جميع اللفات</h2><p>رقم مستقل وطول خاص لكل لفة.</p></div><button class="primary" data-open="addRoll">＋ إضافة لفة</button></div>
+      <input id="rollSearch" class="search" placeholder="ابحث برقم اللفة أو اللون...">
+      <div id="rollsList" class="list empty">لا توجد لفات مسجلة.</div>
+    </section>
+
+    <section id="page-count" class="page">
+      <div class="section-head"><div><h2>جرد اللفات</h2><p>افتح كل لفة، أدخل طولها الفعلي، ثم احفظ نتيجة الجرد.</p></div></div>
+      <div class="notice">علامة «تم الجرد» تعني أنك تحققت من اللفة فعليًا. إذا اختلف الطول، سجّل الطول الفعلي واحفظه.</div>
+      <input id="countSearch" class="search" placeholder="ابحث عن لفة تحتاج إلى الجرد...">
+      <div id="countList" class="list empty">لا توجد لفات مسجلة.</div>
+    </section>
+
+    <section id="page-reports" class="page">
+      <h2>التقارير</h2>
+      <p class="muted-text">ملخص لكل لون بناءً على اللفات المسجلة.</p>
+      <div id="reportList" class="list empty">ستظهر التقارير بعد تسجيل الأصناف واللفات.</div>
+      <button id="exportCsv" class="secondary wide">تنزيل تقرير CSV</button>
+    </section>
+  </main>
+
+  <dialog id="itemDialog">
+    <form id="itemForm" method="dialog">
+      <div class="dialog-head"><h2>إضافة لون / صنف</h2><button type="button" class="x" data-close>×</button></div>
+      <label>رقم اللون أو الصنف <input id="itemCode" required maxlength="40" placeholder="مثال: 1020"></label>
+      <label>اسم القماش <input id="itemName" required maxlength="100" placeholder="مثال: بلاك أوت"></label>
+      <label>ملاحظات (اختياري) <input id="itemNotes" maxlength="200" placeholder="العرض أو نوع القماش"></label>
+      <button class="primary wide" type="submit">حفظ الصنف</button>
+    </form>
+  </dialog>
+
+  <dialog id="rollDialog">
+    <form id="rollForm" method="dialog">
+      <div class="dialog-head"><h2>إضافة لفة واردة</h2><button type="button" class="x" data-close>×</button></div>
+      <label>اللون / الصنف <select id="rollItem" required></select></label>
+      <label>رقم اللفة <input id="rollCode" required maxlength="60" placeholder="مثال: 1020-001"></label>
+      <label>طول اللفة بالمتر <input id="rollMeters" required type="number" min="0.01" step="0.01" placeholder="مثال: 60.3"></label>
+      <label>ملاحظات (اختياري) <input id="rollNotes" maxlength="200"></label>
+      <button class="primary wide" type="submit">حفظ اللفة</button>
+    </form>
+  </dialog>
+
+  <dialog id="countDialog">
+    <form id="countForm" method="dialog">
+      <div class="dialog-head"><h2>تسجيل نتيجة الجرد</h2><button type="button" class="x" data-close>×</button></div>
+      <p id="countRollTitle" class="count-title"></p>
+      <label>الطول الفعلي بالمتر <input id="actualMeters" type="number" min="0.01" step="0.01" required></label>
+      <label>ملاحظات (اختياري) <input id="countNotes" maxlength="200"></label>
+      <button class="primary wide" type="submit">✓ حفظ نتيجة الجرد</button>
+    </form>
+  </dialog>
+
+  <div id="toast" role="status" class="toast"></div>
+  <footer>جرد ستائر أركان الطليعة · بيانات المخزون مستقلة عن بيانات الزبائن</footer>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
