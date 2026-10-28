@@ -1,11 +1,25 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import { getDatabase, ref, onValue, push, update } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import { firebaseConfig } from "./firebase-config.js";
 
 const $ = id => document.getElementById(id);
 const state = { items: {}, rolls: {} };
-let db = null, currentUser = null, toastTimer = null;
+let db = null, currentUser = null, auth = null, toastTimer = null, inventoryListenerStarted = false;
+const accounts = {
+  admin: { email: "admin@arkan-inventory-login.com", uid: "qv5B4WbMSnQNjQiUn9xH6UlvH443", label: "المدير" },
+  worker1: { email: "worker1@arkan-inventory-login.com", uid: "t3A4Q8ihVhabFHrgHr2xBICg6yL2", label: "العامل الأول" },
+  worker2: { email: "worker2@arkan-inventory-login.com", uid: "NyHSweVpD3RigEf465lg2vMfyDB2", label: "العامل الثاني" }
+};
+function showLogin(message = "") {
+  $("loginPanel").hidden = false; $("appTabs").hidden = true; $("appMain").hidden = true; $("sessionBar").hidden = true;
+  $("loginError").textContent = message; $("loginError").hidden = !message;
+}
+function showApp(user) {
+  const account = Object.values(accounts).find(a => a.uid === user.uid);
+  $("loginPanel").hidden = true; $("appTabs").hidden = false; $("appMain").hidden = false; $("sessionBar").hidden = false;
+  $("signedInAs").textContent = `مسجل الدخول: ${account.label} (${Object.keys(accounts).find(k => accounts[k] === account)})`;
+}
 const configured = !!firebaseConfig && firebaseConfig.apiKey &&
   firebaseConfig.apiKey !== "PUT_YOUR_API_KEY_HERE" && firebaseConfig.projectId &&
   firebaseConfig.projectId !== "PUT_YOUR_PROJECT_ID_HERE" &&
@@ -21,7 +35,7 @@ function toast(message) {
 }
 function fmt(n) { return (Number(n) || 0).toLocaleString("en-US", { maximumFractionDigits: 2 }); }
 function norm(v) { return String(v ?? "").trim().toLocaleLowerCase(); }
-function cleanColor(v) { return norm(v).replace(/\s+/g, ""); }
+function cleanColor(v) { return norm(v).replace(/\s+/g, "").replace(/#$/, ""); }
 function values(obj) { return Object.entries(obj || {}).map(([id, v]) => ({ id, ...v })); }
 function allRolls() { return values(state.rolls).sort((a,b) => Number(b.createdAt||0)-Number(a.createdAt||0)); }
 function isShopRoll(r) { return r.location === "shop" || r.transferredToShop === true; }
@@ -226,18 +240,48 @@ $("exportCsv").addEventListener("click",()=>{
   const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"})), a=document.createElement("a");
   a.href=url; a.download="جرد-ستائر-اركان-الطليعة.csv"; a.click(); URL.revokeObjectURL(url);
 });
+let authReady = false;
+$("loginForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!auth) return showLogin("تعذر الاتصال بخدمة تسجيل الدخول. تحقق من إعدادات Firebase.");
+  const username = $("loginUsername").value.trim().toLowerCase();
+  const password = $("loginPassword").value;
+  const account = accounts[username];
+  if (!account) return showLogin("اسم المستخدم أو كلمة المرور غير صحيحة.");
+  const btn = $("loginButton"); btn.disabled = true; btn.textContent = "جارٍ تسجيل الدخول...";
+  try {
+    const credential = await signInWithEmailAndPassword(auth, account.email, password);
+    if (credential.user.uid !== account.uid) {
+      await signOut(auth);
+      showLogin("هذا الحساب غير مصرح له باستخدام تطبيق الجرد.");
+    }
+  } catch (err) {
+    console.error(err);
+    showLogin("تعذر تسجيل الدخول. تحقق من اسم المستخدم وكلمة المرور.");
+  } finally { btn.disabled = false; btn.textContent = "دخول"; }
+});
+$("logoutButton").addEventListener("click", async () => {
+  if (auth) { try { await signOut(auth); } catch (e) { console.error(e); } }
+});
 if (!configured) {
-  $("connectionBadge").textContent="إعداد Firebase ناقص";
+  $("connectionBadge").textContent="إعداد Firebase ناقص"; showLogin("إعداد Firebase غير مكتمل.");
 } else {
   try {
-    const app=initializeApp(firebaseConfig); db=getDatabase(app); const auth=getAuth(app);
-    signInAnonymously(auth).catch(err=>{console.error(err);$("connectionBadge").textContent="تعذر تسجيل الدخول";toast("تعذر تسجيل الدخول المجهول إلى Firebase.");});
-    onAuthStateChanged(auth,user=>{
-      currentUser=user; if(!user) return;
-      onValue(ref(db,"inventory"),snap=>{
-        const data=snap.val()||{}; state.items=data.items||{}; state.rolls=data.rolls||{};
-        render(); $("connectionBadge").textContent="متصل ومتزامن"; $("connectionBadge").classList.remove("muted","error");
-      },err=>{console.error(err);$("connectionBadge").textContent="خطأ في المزامنة";toast("تعذرت قراءة بيانات الجرد من Firebase.");});
+    const app=initializeApp(firebaseConfig); db=getDatabase(app); auth=getAuth(app);
+    showLogin();
+    onAuthStateChanged(auth, async user=>{
+      if (!authReady) authReady = true;
+      if (!user) { currentUser=null; inventoryListenerStarted=false; showLogin(); $("connectionBadge").textContent="يرجى تسجيل الدخول"; return; }
+      const account = Object.values(accounts).find(a => a.uid === user.uid);
+      if (!account) { currentUser=null; showLogin("هذا الحساب غير مصرح له باستخدام تطبيق الجرد."); try { await signOut(auth); } catch(e) { console.error(e); } return; }
+      currentUser=user; showApp(user); $("connectionBadge").textContent="جارٍ الاتصال...";
+      if (!inventoryListenerStarted) {
+        inventoryListenerStarted = true;
+        onValue(ref(db,"inventory"),snap=>{
+          const data=snap.val()||{}; state.items=data.items||{}; state.rolls=data.rolls||{};
+          render(); $("connectionBadge").textContent="متصل ومتزامن"; $("connectionBadge").classList.remove("muted","error");
+        },err=>{console.error(err);$("connectionBadge").textContent="خطأ في المزامنة";toast("تعذرت قراءة بيانات الجرد من Firebase.");});
+      }
     });
-  } catch(err) { console.error(err); $("connectionBadge").textContent="تعذر الاتصال"; }
+  } catch(err) { console.error(err); $("connectionBadge").textContent="تعذر الاتصال"; showLogin("تعذر الاتصال بـ Firebase."); }
 }
