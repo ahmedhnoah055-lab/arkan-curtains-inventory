@@ -1,109 +1,35 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#512078">
-  <title>جرد ستائر أركان الطليعة</title>
-  <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="css/style.css">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#512078"><title>جرد ستائر أركان الطليعة</title>
+<link rel="manifest" href="manifest.json"><link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand-mark">أ</div>
-    <div class="brand-title"><h1>ستائر أركان الطليعة</h1><p>جرد الأقمشة واللفات</p></div>
-    <span id="connectionBadge" class="badge muted">جارٍ الاتصال...</span>
-  </header>
-
-  <nav class="tabs">
-    <button class="tab active" data-page="home">الرئيسية</button>
-    <button class="tab" data-page="items">الكتالوجات</button>
-    <button class="tab" data-page="rolls">جميع اللفات</button>
-    <button class="tab" data-page="count">مطابقة الجرد</button>
-    <button class="tab" data-page="reports">التقارير</button>
-  </nav>
-
-  <main>
-    <section id="page-home" class="page active">
-      <div class="welcome"><h2>ملخص المخزون</h2><p>كل كتالوج يحتوي على لفات متعددة، ولكل لفة لون وطول مستقلان.</p></div>
-      <div class="stats">
-        <article class="stat"><span>إجمالي اللفات</span><strong id="statRolls">0</strong></article>
-        <article class="stat green"><span>اللفات المطابقة</span><strong id="statCounted">0</strong></article>
-        <article class="stat blue"><span>إجمالي الأمتار</span><strong id="statMeters">0</strong></article>
-        <article class="stat gold"><span>الكتالوجات</span><strong id="statItems">0</strong></article>
-      </div>
-      <div class="quick-actions">
-        <button class="primary" data-open="rollDialog">＋ إضافة لفات واردة</button>
-        <button class="secondary" data-open="itemDialog">＋ كتالوج جديد مع لفاته</button>
-        <button class="secondary" data-page="count">✓ بدء مطابقة الجرد</button>
-      </div>
-      <div class="panel"><h3>آخر اللفات المضافة</h3><div id="recentRolls" class="list empty">لا توجد لفات بعد.</div></div>
-    </section>
-
-    <section id="page-items" class="page">
-      <div class="section-head"><div><h2>الكتالوجات</h2><p>سجّل رقم الكتالوج مرة واحدة وأضف تحته كل اللفات.</p></div><button class="primary" data-open="itemDialog">＋ كتالوج جديد</button></div>
-      <input id="itemSearch" class="search" placeholder="ابحث برقم الكتالوج أو اسم القماش...">
-      <div id="itemsList" class="list empty">لا توجد كتالوجات مسجلة.</div>
-    </section>
-
-    <section id="page-rolls" class="page">
-      <div class="section-head"><div><h2>جميع اللفات</h2><p>يمكن تكرار رقم اللون إذا كانت كل لفة مستقلة بطولها.</p></div><button class="primary" data-open="rollDialog">＋ إضافة لفة</button></div>
-      <input id="rollSearch" class="search" placeholder="ابحث برقم الكتالوج أو اللون...">
-      <div id="rollsList" class="list empty">لا توجد لفات مسجلة.</div>
-    </section>
-
-    <section id="page-count" class="page">
-      <div class="section-head"><div><h2>مطابقة الجرد</h2><p>لن تُعتمد اللفة إلا إذا تطابق رقم الكتالوج واللون والطول المسجل.</p></div></div>
-      <div class="notice">أدخل بيانات اللفة الموجودة فعليًا. إذا اختلف أي رقم أو اختلف الطول، فلن تُعلَّم اللفة بأنها مطابقة.</div>
-      <input id="countSearch" class="search" placeholder="ابحث عن اللفة أو الكتالوج...">
-      <div id="countList" class="list empty">لا توجد لفات تنتظر المطابقة.</div>
-    </section>
-
-    <section id="page-reports" class="page">
-      <h2>التقارير</h2><p class="muted-text">الإجماليات محسوبة من أطوال اللفات المسجلة.</p>
-      <div id="reportList" class="list empty">ستظهر التقارير بعد تسجيل الكتالوجات واللفات.</div>
-      <button id="exportCsv" class="secondary wide">تنزيل تقرير CSV</button>
-    </section>
-  </main>
-
-  <dialog id="itemDialog">
-    <form id="itemForm">
-      <div class="dialog-head"><h2>كتالوج جديد وإضافة لفاته</h2><button type="button" class="x" data-close aria-label="إغلاق">×</button></div>
-      <label>رقم الكتالوج <input id="itemCode" required maxlength="40" placeholder="مثال: 1020"></label>
-      <label>اسم القماش (اختياري) <input id="itemName" maxlength="100" placeholder="مثال: بلاك أوت"></label>
-      <label>ملاحظات (اختياري) <input id="itemNotes" maxlength="200" placeholder="عرض القماش أو نوعه"></label>
-      <div class="rows-heading"><strong>لفات هذا الكتالوج</strong><span>رقم اللون والطول لكل لفة</span></div>
-      <div id="rollRows" class="roll-rows"></div>
-      <button id="addRollRow" type="button" class="secondary wide">＋ إضافة لفة أخرى</button>
-      <button class="primary wide" type="submit">حفظ الكتالوج واللفات</button>
-    </form>
-  </dialog>
-
-  <dialog id="rollDialog">
-    <form id="rollForm">
-      <div class="dialog-head"><h2>إضافة لفة واردة</h2><button type="button" class="x" data-close aria-label="إغلاق">×</button></div>
-      <label>رقم الكتالوج <select id="rollItem" required></select></label>
-      <label>رقم اللون <input id="rollCode" required maxlength="60" placeholder="مثال: 2"></label>
-      <label>طول اللفة بالمتر <input id="rollMeters" required type="number" min="0.01" step="0.01" placeholder="مثال: 60.3"></label>
-      <label>ملاحظات (اختياري) <input id="rollNotes" maxlength="200"></label>
-      <button class="primary wide" type="submit">حفظ اللفة</button>
-    </form>
-  </dialog>
-
-  <dialog id="countDialog">
-    <form id="countForm">
-      <div class="dialog-head"><h2>مطابقة اللفة</h2><button type="button" class="x" data-close aria-label="إغلاق">×</button></div>
-      <p id="countRollTitle" class="count-title"></p>
-      <label>رقم الكتالوج الموجود على اللفة <input id="countCatalog" required maxlength="40"></label>
-      <label>رقم اللون الموجود على اللفة <input id="countColor" required maxlength="60"></label>
-      <label>الطول الفعلي بالمتر <input id="actualMeters" type="number" min="0.01" step="0.01" required></label>
-      <label>ملاحظات (اختياري) <input id="countNotes" maxlength="200"></label>
-      <button class="primary wide" type="submit">✓ تأكيد المطابقة</button>
-    </form>
-  </dialog>
-
-  <div id="toast" role="status" class="toast"></div>
-  <footer>جرد ستائر أركان الطليعة · بيانات الجرد مستقلة عن بيانات الزبائن</footer>
-  <script type="module" src="js/main.js"></script>
-</body>
-</html>
+<header class="topbar"><div class="brand-mark">أ</div><div class="brand-title"><h1>ستائر أركان الطليعة</h1><p>جرد المستودع واللفات المنقولة إلى المحل</p></div><span id="connectionBadge" class="badge muted">جارٍ الاتصال...</span></header>
+<nav class="tabs">
+<button class="tab active" data-page="home">الرئيسية</button><button class="tab" data-page="items">المستودع</button><button class="tab" data-page="rolls">جميع اللفات</button><button class="tab" data-page="count">لفات المحل</button><button class="tab" data-page="reports">التقارير</button>
+</nav>
+<main>
+<section id="page-home" class="page active">
+<div class="welcome"><h2>ملخص المخزون</h2><p>كل لفة لها سجل مستقل، حتى عند تكرار اللون والطول.</p></div>
+<div class="stats">
+<article class="stat"><span>لفات المستودع</span><strong id="statRolls">0</strong></article><article class="stat green"><span>لفات المحل</span><strong id="statCounted">0</strong></article><article class="stat blue"><span>أمتار المستودع</span><strong id="statMeters">0</strong></article><article class="stat gold"><span>الكتالوجات</span><strong id="statItems">0</strong></article>
+</div>
+<div class="quick-actions"><button class="primary" data-open="transferDialog">⇢ جرد اللفات الواردة من المستودع</button><button class="secondary" data-open="rollDialog">＋ إضافة لفات إلى المستودع</button><button class="secondary" data-open="itemDialog">＋ كتالوج جديد</button><button class="secondary" data-page="items">فتح المستودع</button></div>
+<div class="panel"><h3>آخر اللفات المضافة</h3><div id="recentRolls" class="list empty">لا توجد لفات بعد.</div></div>
+</section>
+<section id="page-items" class="page"><div class="section-head"><div><h2>المستودع</h2><p>سجّل الكتالوج ثم أدخل أطوال اللفات دفعة واحدة لكل لون.</p></div><button class="primary" data-open="itemDialog">＋ كتالوج جديد</button></div><input id="itemSearch" class="search" placeholder="ابحث برقم الكتالوج أو اسم القماش..."><div id="itemsList" class="list empty">لا توجد كتالوجات مسجلة.</div></section>
+<section id="page-rolls" class="page"><div class="section-head"><div><h2>جميع اللفات</h2><p>يعرض اللفات الموجودة في المستودع والمنقولة إلى المحل.</p></div><button class="primary" data-open="rollDialog">＋ إضافة لفات إلى المستودع</button></div><input id="rollSearch" class="search" placeholder="ابحث برقم الكتالوج أو اللون..."><div id="rollsList" class="list empty">لا توجد لفات مسجلة.</div></section>
+<section id="page-count" class="page"><div class="section-head"><div><h2>لفات المحل</h2><p>هذه اللفات نُقلت من المستودع بعد مطابقة الكتالوج واللون والطول.</p></div><button class="primary" data-open="transferDialog">＋ نقل لفة من المستودع</button></div><input id="countSearch" class="search" placeholder="ابحث عن لفة في المحل..."><div id="countList" class="list empty">لا توجد لفات منقولة إلى المحل.</div></section>
+<section id="page-reports" class="page"><h2>التقارير</h2><p class="muted-text">الإجماليات محسوبة من أطوال اللفات المسجلة وموقعها الحالي.</p><div id="reportList" class="list empty">ستظهر التقارير بعد تسجيل الكتالوجات واللفات.</div><button id="exportCsv" class="secondary wide">تنزيل تقرير CSV</button></section>
+</main>
+<dialog id="itemDialog"><form id="itemForm"><div class="dialog-head"><h2>كتالوج جديد للمستودع</h2><button type="button" class="x" data-close aria-label="إغلاق">×</button></div>
+<label>رقم الكتالوج <input id="itemCode" required maxlength="40" placeholder="مثال: 1020"></label><label>اسم القماش (اختياري) <input id="itemName" maxlength="100" placeholder="مثال: بلاك أوت"></label><label>ملاحظات (اختياري) <input id="itemNotes" maxlength="200" placeholder="عرض القماش أو نوعه"></label>
+<div class="rows-heading"><strong>لفات الكتالوج</strong><span>صف لكل لون، وكل طول في سطر</span></div><div id="rollRows" class="roll-rows"></div><button id="addRollRow" type="button" class="secondary wide">＋ إضافة لون آخر</button><button class="primary wide" type="submit">حفظ الكتالوج واللفات</button></form></dialog>
+<dialog id="rollDialog"><form id="rollForm"><div class="dialog-head"><h2>إضافة لفات إلى المستودع</h2><button type="button" class="x" data-close aria-label="إغلاق">×</button></div>
+<label>رقم الكتالوج <select id="rollItem" required></select></label><label>رقم اللون <input id="rollCode" required maxlength="60" placeholder="مثال: 2 أو 2#"></label><label>أطوال اللفات بالمتر <textarea id="rollMeters" required rows="5" placeholder="60.3&#10;59&#10;68.5"></textarea></label><label>ملاحظات (اختياري) <input id="rollNotes" maxlength="200"></label><p class="muted-text">كل طول يُحفظ كلفة مستقلة، حتى لو تكرر.</p><button class="primary wide" type="submit">حفظ اللفات</button></form></dialog>
+<dialog id="transferDialog"><form id="transferForm"><div class="dialog-head"><h2>جرد اللفات الواردة من المستودع</h2><button type="button" class="x" data-close aria-label="إغلاق">×</button></div>
+<label>رقم الكتالوج <input id="transferCatalog" required maxlength="40" placeholder="مثال: 1020"></label><label>رقم اللون <input id="transferColor" required maxlength="60" placeholder="مثال: 2 أو 2#"></label><label>طول اللفة بالمتر <input id="transferMeters" required type="number" min="0.01" step="0.01" placeholder="60.3"></label><p class="muted-text">سينقل التطبيق لفة واحدة فقط. إذا لم يجد تطابقًا دقيقًا فلن يغيّر المخزون.</p><button class="primary wide" type="submit">✓ تأكيد نقل لفة إلى المحل</button></form></dialog>
+<div id="toast" role="status" class="toast"></div><footer>جرد ستائر أركان الطليعة · بيانات الجرد مستقلة عن بيانات الزبائن</footer>
+<script type="module" src="js/main.js"></script></body></html>
