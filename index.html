@@ -7,10 +7,18 @@
 </head>
 <body>
 <header class="topbar"><div class="brand-mark">أ</div><div class="brand-title"><h1>ستائر أركان الطليعة</h1><p>جرد المستودع واللفات المنقولة إلى المحل</p></div><span id="connectionBadge" class="badge muted">جارٍ الاتصال...</span></header>
-<nav class="tabs">
+<section id="loginPanel" class="panel" style="max-width:420px;margin:24px auto;padding:20px" hidden>
+<h2>تسجيل الدخول إلى الجرد</h2><p class="muted-text">اكتب اسم المستخدم وكلمة المرور المخصصين لك.</p>
+<form id="loginForm">
+<label>اسم المستخدم <input id="loginUsername" required maxlength="40" autocomplete="username" placeholder="admin أو worker1 أو worker2"></label>
+<label>كلمة المرور <input id="loginPassword" type="password" required autocomplete="current-password" minlength="6" placeholder="كلمة المرور"></label>
+<button id="loginButton" class="primary wide" type="submit">دخول</button>
+<p id="loginError" class="muted-text" role="alert" hidden></p>
+</form></section>
+<nav class="tabs" id="appTabs" hidden>
 <button class="tab active" data-page="home">الرئيسية</button><button class="tab" data-page="items">المستودع</button><button class="tab" data-page="rolls">جميع اللفات</button><button class="tab" data-page="count">لفات المحل</button><button class="tab" data-page="reports">التقارير</button>
 </nav>
-<main>
+<main id="appMain" hidden>
 <section id="page-home" class="page active">
 <div class="welcome"><h2>ملخص المخزون</h2><p>كل لفة لها سجل مستقل، حتى عند تكرار اللون والطول.</p></div>
 <div class="stats">
@@ -31,5 +39,5 @@
 <label>رقم الكتالوج <select id="rollItem" required></select></label><label>رقم اللون <input id="rollCode" required maxlength="60" placeholder="مثال: 2 أو 2#"></label><label>أطوال اللفات بالمتر <textarea id="rollMeters" required rows="5" placeholder="60.3&#10;59&#10;68.5"></textarea></label><label>ملاحظات (اختياري) <input id="rollNotes" maxlength="200"></label><p class="muted-text">كل طول يُحفظ كلفة مستقلة، حتى لو تكرر.</p><button class="primary wide" type="submit">حفظ اللفات</button></form></dialog>
 <dialog id="transferDialog"><form id="transferForm"><div class="dialog-head"><h2>جرد اللفات الواردة من المستودع</h2><button type="button" class="x" data-close aria-label="إغلاق">×</button></div>
 <label>رقم الكتالوج <input id="transferCatalog" required maxlength="40" placeholder="مثال: 1020"></label><label>رقم اللون <input id="transferColor" required maxlength="60" placeholder="مثال: 2 أو 2#"></label><label>طول اللفة بالمتر <input id="transferMeters" required type="number" min="0.01" step="0.01" placeholder="60.3"></label><p class="muted-text">سينقل التطبيق لفة واحدة فقط. إذا لم يجد تطابقًا دقيقًا فلن يغيّر المخزون.</p><button class="primary wide" type="submit">✓ تأكيد نقل لفة إلى المحل</button></form></dialog>
-<div id="toast" role="status" class="toast"></div><footer>جرد ستائر أركان الطليعة · بيانات الجرد مستقلة عن بيانات الزبائن</footer>
+<div id="toast" role="status" class="toast"></div><div id="sessionBar" style="text-align:center;padding:8px" hidden><span id="signedInAs"></span> <button id="logoutButton" type="button" class="secondary">تسجيل الخروج</button></div><footer>جرد ستائر أركان الطليعة · بيانات الجرد مستقلة عن بيانات الزبائن</footer>
 <script type="module" src="js/main.js"></script></body></html>
