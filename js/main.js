@@ -206,6 +206,27 @@ function rollCard(roll, countMode = false) {
     $("countDialog").showModal();
   });
   el.append(btn);
+  
+  const deleteBtn = document.createElement("button");
+  deleteBtn.className = "small-btn";
+  deleteBtn.textContent = "🗑️ حذف اللفة";
+
+  deleteBtn.addEventListener("click", async () => {
+    if (!confirm("هل أنت متأكد من حذف هذه اللفة؟")) {
+      return;
+    }
+
+    const ok = await saveUpdates({
+      [`rolls/${roll.id}`]: null
+    });
+
+    if (ok) {
+      toast("تم حذف اللفة بنجاح");
+    }
+  });
+
+  el.append(deleteBtn);
+
   return el;
 }
 function renderStats() {
