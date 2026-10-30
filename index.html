@@ -40,4 +40,14 @@
 <dialog id="transferDialog"><form id="transferForm"><div class="dialog-head"><h2>جرد اللفات الواردة من المستودع</h2><button type="button" class="x" data-close aria-label="إغلاق">×</button></div>
 <label>رقم الكتالوج <input id="transferCatalog" required maxlength="40" placeholder="مثال: 1020"></label><label>رقم اللون <input id="transferColor" required maxlength="60" placeholder="مثال: 2 أو 2#"></label><label>طول اللفة بالمتر <input id="transferMeters" required type="number" min="0.01" step="0.01" placeholder="60.3"></label><p class="muted-text">سينقل التطبيق لفة واحدة فقط. إذا لم يجد تطابقًا دقيقًا فلن يغيّر المخزون.</p><button class="primary wide" type="submit">✓ تأكيد نقل لفة إلى المحل</button></form></dialog>
 <div id="toast" role="status" class="toast"></div><div id="sessionBar" style="text-align:center;padding:8px" hidden><span id="signedInAs"></span> <button id="logoutButton" type="button" class="secondary">تسجيل الخروج</button></div><footer>جرد ستائر أركان الطليعة · بيانات الجرد مستقلة عن بيانات الزبائن</footer>
-<script type="module" src="js/main.js"></script></body></html>
+<script type="module" src="js/main.js"></script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch((error) => {
+      console.error("تعذر تفعيل التخزين المحلي للتطبيق:", error);
+    });
+  });
+}
+</script>
+</body></html>
