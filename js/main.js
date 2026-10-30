@@ -6,6 +6,60 @@ import { firebaseConfig } from "./firebase-config.js";
 const $ = id => document.getElementById(id);
 const state = { items: {}, rolls: {} };
 let db = null, currentUser = null, auth = null, toastTimer = null, inventoryListenerStarted = false;
+const LOCAL_KEY = "arkan_inventory_cache_v1";
+const QUEUE_KEY = "arkan_inventory_queue_v1";
+let serverInventory = { items: {}, rolls: {} };
+let pendingOperations = loadQueue();
+let flushingQueue = false;
+
+function loadQueue() {
+  try { const value = JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]"); return Array.isArray(value) ? value : []; }
+  catch { return []; }
+}
+function saveQueue() {
+  try { localStorage.setItem(QUEUE_KEY, JSON.stringify(pendingOperations)); }
+  catch (e) { console.error("تعذر حفظ قائمة المزامنة محليًا", e); toast("مساحة التخزين المحلية غير كافية؛ لا تغلق التطبيق قبل عودة الإنترنت."); }
+}
+function saveLocalInventory() {
+  try { localStorage.setItem(LOCAL_KEY, JSON.stringify(serverInventory)); }
+  catch (e) { console.error("تعذر حفظ نسخة الجرد محليًا", e); toast("تعذر حفظ نسخة الجرد على الجهاز."); }
+}
+function loadLocalInventory() {
+  try {
+    const value = JSON.parse(localStorage.getItem(LOCAL_KEY) || "null");
+    if (value && typeof value === "object") serverInventory = { items: value.items || {}, rolls: value.rolls || {} };
+  } catch (e) { console.error("تعذر قراءة نسخة الجرد المحلية", e); }
+  rebuildVisibleInventory();
+}
+function applyPathUpdates(source, updates) {
+  const result = JSON.parse(JSON.stringify(source || { items: {}, rolls: {} }));
+  for (const [path, value] of Object.entries(updates || {})) {
+    const parts = path.split("/").filter(Boolean);
+    let node = result;
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (!node[parts[i]] || typeof node[parts[i]] !== "object") node[parts[i]] = {};
+      node = node[parts[i]];
+    }
+    if (!parts.length) continue;
+    if (value === null) delete node[parts[parts.length - 1]];
+    else node[parts[parts.length - 1]] = value;
+  }
+  return result;
+}
+function rebuildVisibleInventory() {
+  let visible = { items: serverInventory.items || {}, rolls: serverInventory.rolls || {} };
+  for (const operation of pendingOperations) visible = applyPathUpdates(visible, operation.updates);
+  state.items = visible.items || {};
+  state.rolls = visible.rolls || {};
+  if ($("appMain") && !$("appMain").hidden) render();
+}
+function setConnectionLabel(text, offline = false) {
+  const badge = $("connectionBadge");
+  if (!badge) return;
+  badge.textContent = text;
+  badge.classList.toggle("muted", offline);
+  badge.classList.toggle("error", offline);
+}
 const accounts = {
   admin: { email: "admin@arkan-inventory-login.com", uid: "qv5B4WbMSnQNjQiUn9xH6UlvH443", label: "المدير" },
   worker1: { email: "worker1@arkan-inventory-login.com", uid: "t3A4Q8ihVhabFHrgHr2xBICg6yL2", label: "العامل الأول" },
@@ -77,10 +131,43 @@ function addRollRow() {
 function parseLengths(s) {
   return String(s || "").split(/[\n,،;؛\t ]+/).map(x => x.trim()).filter(Boolean).map(Number);
 }
+async function flushPendingOperations() {
+  if (flushingQueue || !db || !currentUser || !navigator.onLine || !pendingOperations.length) return;
+  flushingQueue = true;
+  setConnectionLabel("جارٍ مزامنة العمليات...");
+  try {
+    while (pendingOperations.length && navigator.onLine && currentUser) {
+      const operation = pendingOperations[0];
+      await update(ref(db, "inventory"), operation.updates);
+      pendingOperations.shift();
+      saveQueue();
+      // Keep the visible data based on the server copy plus any remaining queued changes.
+      rebuildVisibleInventory();
+    }
+    if (!pendingOperations.length) {
+      setConnectionLabel("متصل ومتزامن");
+      toast("تمت مزامنة جميع التعديلات المحفوظة دون إنترنت.");
+    }
+  } catch (e) {
+    console.error("فشلت مزامنة العمليات المؤجلة", e);
+    setConnectionLabel("بانتظار عودة الاتصال للمزامنة", true);
+  } finally { flushingQueue = false; }
+}
 async function saveUpdates(updates) {
-  if (!db || !currentUser) { toast("Firebase غير متصل. تحقق من الإعدادات والاتصال."); return false; }
-  try { await update(ref(db, "inventory"), updates); return true; }
-  catch (e) { console.error(e); toast("تعذر الحفظ. تحقق من الإنترنت وقواعد Firebase."); return false; }
+  if (!currentUser) { toast("سجّل الدخول أولًا حتى تتمكن من تعديل الجرد."); return false; }
+  const operation = { id: `${Date.now()}_${Math.random().toString(36).slice(2)}`, updates, createdAt: Date.now() };
+  pendingOperations.push(operation);
+  saveQueue();
+  rebuildVisibleInventory();
+  if (!navigator.onLine) {
+    setConnectionLabel("غير متصل — التعديلات محفوظة للمزامنة", true);
+    toast("تم حفظ التعديل على الجهاز، وسيُرسل إلى Firebase عند عودة الإنترنت.");
+    return true;
+  }
+  // Queue first, then send. If the request fails, the same IDs and values remain queued,
+  // so retrying the update does not create duplicate rolls.
+  flushPendingOperations();
+  return true;
 }
 function newRoll(itemId, color, length, notes, now) {
   const item = state.items[itemId];
@@ -240,6 +327,14 @@ $("exportCsv").addEventListener("click",()=>{
   const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"})), a=document.createElement("a");
   a.href=url; a.download="جرد-ستائر-اركان-الطليعة.csv"; a.click(); URL.revokeObjectURL(url);
 });
+window.addEventListener("online", () => {
+  setConnectionLabel("عاد الاتصال — جارٍ المزامنة...");
+  flushPendingOperations();
+});
+window.addEventListener("offline", () => {
+  setConnectionLabel("غير متصل — التعديلات تحفظ محليًا", true);
+});
+
 let authReady = false;
 $("loginForm").addEventListener("submit", async e => {
   e.preventDefault();
@@ -263,24 +358,38 @@ $("loginForm").addEventListener("submit", async e => {
 $("logoutButton").addEventListener("click", async () => {
   if (auth) { try { await signOut(auth); } catch (e) { console.error(e); } }
 });
+loadLocalInventory();
 if (!configured) {
   $("connectionBadge").textContent="إعداد Firebase ناقص"; showLogin("إعداد Firebase غير مكتمل.");
 } else {
   try {
     const app=initializeApp(firebaseConfig); db=getDatabase(app); auth=getAuth(app);
-    showLogin();
+    // Wait for Firebase to restore the previous session before showing the login panel.
     onAuthStateChanged(auth, async user=>{
       if (!authReady) authReady = true;
       if (!user) { currentUser=null; inventoryListenerStarted=false; showLogin(); $("connectionBadge").textContent="يرجى تسجيل الدخول"; return; }
       const account = Object.values(accounts).find(a => a.uid === user.uid);
       if (!account) { currentUser=null; showLogin("هذا الحساب غير مصرح له باستخدام تطبيق الجرد."); try { await signOut(auth); } catch(e) { console.error(e); } return; }
-      currentUser=user; showApp(user); $("connectionBadge").textContent="جارٍ الاتصال...";
+      currentUser=user;
+      loadLocalInventory();
+      showApp(user);
+      if (navigator.onLine) setConnectionLabel("جارٍ الاتصال...");
+      else setConnectionLabel("غير متصل — عرض آخر نسخة محفوظة", true);
       if (!inventoryListenerStarted) {
         inventoryListenerStarted = true;
         onValue(ref(db,"inventory"),snap=>{
-          const data=snap.val()||{}; state.items=data.items||{}; state.rolls=data.rolls||{};
-          render(); $("connectionBadge").textContent="متصل ومتزامن"; $("connectionBadge").classList.remove("muted","error");
-        },err=>{console.error(err);$("connectionBadge").textContent="خطأ في المزامنة";toast("تعذرت قراءة بيانات الجرد من Firebase.");});
+          const data=snap.val()||{};
+          serverInventory = { items: data.items || {}, rolls: data.rolls || {} };
+          saveLocalInventory();
+          rebuildVisibleInventory();
+          if (navigator.onLine) setConnectionLabel(pendingOperations.length ? "هناك تعديلات بانتظار المزامنة" : "متصل ومتزامن", !!pendingOperations.length);
+          flushPendingOperations();
+        },err=>{
+          console.error(err);
+          rebuildVisibleInventory();
+          setConnectionLabel("تعذر الاتصال — نعرض آخر نسخة محفوظة", true);
+          toast("تعذر الاتصال بقاعدة البيانات؛ يمكنك متابعة العمل بالنسخة المحفوظة محليًا.");
+        });
       }
     });
   } catch(err) { console.error(err); $("connectionBadge").textContent="تعذر الاتصال"; showLogin("تعذر الاتصال بـ Firebase."); }
