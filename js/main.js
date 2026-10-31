@@ -71,8 +71,14 @@ function showLogin(message = "") {
 }
 function showApp(user) {
   const account = Object.values(accounts).find(a => a.uid === user.uid);
-  $("loginPanel").hidden = true; $("appTabs").hidden = false; $("appMain").hidden = false; $("sessionBar").hidden = false;
+  $("loginPanel").hidden = true;
+  $("appTabs").hidden = false;
+  $("appMain").hidden = false;
+  $("sessionBar").hidden = false;
   $("signedInAs").textContent = `مسجل الدخول: ${account.label} (${Object.keys(accounts).find(k => accounts[k] === account)})`;
+
+  // عرض نسخة الجرد المحلية فور فتح التطبيق
+  rebuildVisibleInventory();
 }
 const configured = !!firebaseConfig && firebaseConfig.apiKey &&
   firebaseConfig.apiKey !== "PUT_YOUR_API_KEY_HERE" && firebaseConfig.projectId &&
